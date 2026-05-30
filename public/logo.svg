@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Page body (left, top-left, bottom — everything except the folded corner) -->
+  <path
+    d="M10 4 L44 4 L44 16 L56 16 L56 60 L10 60 Z"
+    fill="currentColor"
+    opacity="0.12"
+  />
+  <!-- Page outline -->
+  <path
+    d="M10 4 L44 4 L56 16 L56 60 L10 60 Z"
+    stroke="currentColor"
+    stroke-width="3.5"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <!-- Dog-ear fold triangle -->
+  <path
+    d="M44 4 L56 16 L44 16 Z"
+    fill="currentColor"
+    opacity="0.35"
+  />
+  <path
+    d="M44 4 L56 16 L44 16 Z"
+    stroke="currentColor"
+    stroke-width="3.5"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <!-- Three content lines -->
+  <line x1="19" y1="29" x2="47" y2="29" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+  <line x1="19" y1="38" x2="47" y2="38" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+  <line x1="19" y1="47" x2="36" y2="47" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+</svg>
