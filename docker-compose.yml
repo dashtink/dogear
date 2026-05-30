@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER:     stackarr
-      POSTGRES_PASSWORD: stackarr
-      POSTGRES_DB:       stackarr
+      POSTGRES_USER:     dogear
+      POSTGRES_PASSWORD: dogear
+      POSTGRES_DB:       dogear
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U stackarr"]
+      test: ["CMD-SHELL", "pg_isready -U dogear"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,7 +23,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://stackarr:stackarr@db:5432/stackarr
+      DATABASE_URL: postgresql://dogear:dogear@db:5432/dogear
     # Don't expose port 3000 directly — Caddy proxies it over HTTPS
     expose:
       - "3000"
@@ -37,12 +37,12 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      # Set STACKARR_HOST to your Tailscale hostname or domain to enable trusted HTTPS.
+      # Set DOGEAR_HOST to your Tailscale hostname or domain to enable trusted HTTPS.
       # Leave unset (or as the default below) to use a self-signed cert with local IP.
       # Examples:
-      #   Tailscale:  STACKARR_HOST=my-server.tail1234.ts.net
-      #   Domain:     STACKARR_HOST=library.yourdomain.com
-      STACKARR_HOST: ${STACKARR_HOST:-:443}
+      #   Tailscale:  DOGEAR_HOST=my-server.tail1234.ts.net
+      #   Domain:     DOGEAR_HOST=library.yourdomain.com
+      DOGEAR_HOST: ${DOGEAR_HOST:-:443}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -52,8 +52,8 @@ services:
     image: dpage/pgadmin4
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL:    admin@stackarr.local
-      PGADMIN_DEFAULT_PASSWORD: stackarr
+      PGADMIN_DEFAULT_EMAIL:    admin@dogear.local
+      PGADMIN_DEFAULT_PASSWORD: dogear
     ports:
       - "5050:80"
     depends_on:

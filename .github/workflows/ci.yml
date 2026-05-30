@@ -40,4 +40,4 @@ jobs:
         run: npm run build
         env:
           # Dummy URL so build doesn't fail on missing env
-          DATABASE_URL: postgresql://stackarr:stackarr@localhost:5432/stackarr
+          DATABASE_URL: postgresql://dogear:dogear@localhost:5432/dogear

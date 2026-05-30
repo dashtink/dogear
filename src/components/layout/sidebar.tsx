@@ -20,7 +20,7 @@ export function Sidebar() {
     <aside className="hidden md:flex flex-col w-56 min-h-screen border-r bg-background px-3 py-6 gap-1 shrink-0">
       <div className="flex items-center gap-2 px-3 mb-6">
         <BookOpen className="h-6 w-6 text-primary" />
-        <span className="font-bold text-lg tracking-tight">Stackarr</span>
+        <span className="font-bold text-lg tracking-tight">DogEar</span>
       </div>
       {nav.map(({ href, label, icon: Icon }) => (
         <Link

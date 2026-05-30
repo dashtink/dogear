@@ -1,22 +1,22 @@
-# Stackarr reverse proxy
+# DogEar reverse proxy
 #
-# STACKARR_HOST controls where Caddy listens and how TLS is issued:
+# DOGEAR_HOST controls where Caddy listens and how TLS is issued:
 #
 #   Tailscale hostname  →  my-server.tail1234.ts.net
 #     Set in docker-compose env or a .env file:
-#       STACKARR_HOST=my-server.tail1234.ts.net
+#       DOGEAR_HOST=my-server.tail1234.ts.net
 #     Also enable HTTPS in Tailscale admin → DNS → HTTPS Certificates.
 #     Caddy will fetch a trusted cert automatically via Tailscale's ACME.
 #
 #   Real domain  →  library.yourdomain.com
-#     STACKARR_HOST=library.yourdomain.com
+#     DOGEAR_HOST=library.yourdomain.com
 #     Caddy fetches a Let's Encrypt cert automatically (ports 80+443 must be open).
 #
-#   Local IP / self-signed (default, STACKARR_HOST unset)
+#   Local IP / self-signed (default, DOGEAR_HOST unset)
 #     Caddy uses its internal CA. Export root.crt and install on devices once.
 #     docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
 
-{$STACKARR_HOST::443} {
+{$DOGEAR_HOST::443} {
   reverse_proxy app:3000
 }
 

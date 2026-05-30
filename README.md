@@ -1,4 +1,4 @@
-# Stackarr
+# DogEar
 
 **Self-hosted personal library catalog.** Scan ISBN barcodes, track physical shelf locations, and manage who's borrowed your books.
 
@@ -30,13 +30,13 @@
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/dashtink/stackarr.git
-cd stackarr
+git clone https://github.com/dashtink/dogear.git
+cd dogear
 ```
 
 ### 2. Choose your HTTPS setup
 
-Camera access on mobile **requires HTTPS** — this is enforced by all browsers (Chrome, Safari, Firefox) regardless of whether you're on a local network. It's a browser security rule, not something Stackarr can work around. Pick one option:
+Camera access on mobile **requires HTTPS** — this is enforced by all browsers (Chrome, Safari, Firefox) regardless of whether you're on a local network. It's a browser security rule, not something DogEar can work around. Pick one option:
 
 ---
 
@@ -194,7 +194,7 @@ On the **Library** page:
 ## Architecture
 
 ```
-stackarr/
+dogear/
 ├── src/
 │   ├── app/
 │   │   ├── api/          # REST API routes

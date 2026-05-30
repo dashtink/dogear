@@ -24,7 +24,7 @@ What actually happened.
 
 ## Environment
 
-- Stackarr version: <!-- check package.json -->
+- DogEar version: <!-- check package.json -->
 - Browser: <!-- e.g. Safari 17, Chrome 120 -->
 - Device/OS: <!-- e.g. iPhone 15 iOS 17, MacBook macOS 14 -->
 - Deployment: <!-- Docker / local dev -->

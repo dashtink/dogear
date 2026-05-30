@@ -1,4 +1,4 @@
-# Contributing to Stackarr
+# Contributing to DogEar
 
 Thanks for your interest in contributing! This is a small personal project welcoming bug fixes, improvements, and new features.
 
@@ -13,8 +13,8 @@ Thanks for your interest in contributing! This is a small personal project welco
 ### Local Setup
 
 ```bash
-git clone https://github.com/dashtink/stackarr.git
-cd stackarr
+git clone https://github.com/dashtink/dogear.git
+cd dogear
 npm install
 
 # Start Postgres
@@ -80,4 +80,4 @@ Use the [Feature Request](.github/ISSUE_TEMPLATE/feature_request.md) template.
 
 ## Questions
 
-Open a [Discussion](https://github.com/dashtink/stackarr/discussions) for anything that isn't a bug or feature request.
+Open a [Discussion](https://github.com/dashtink/dogear/discussions) for anything that isn't a bug or feature request.

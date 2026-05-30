@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Stackarr will be documented here.
+All notable changes to DogEar will be documented here.
 
 ## [0.1.0] – 2026-05-30
 
