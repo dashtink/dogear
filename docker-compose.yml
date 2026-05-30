@@ -36,6 +36,13 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      # Set STACKARR_HOST to your Tailscale hostname or domain to enable trusted HTTPS.
+      # Leave unset (or as the default below) to use a self-signed cert with local IP.
+      # Examples:
+      #   Tailscale:  STACKARR_HOST=my-server.tail1234.ts.net
+      #   Domain:     STACKARR_HOST=library.yourdomain.com
+      STACKARR_HOST: ${STACKARR_HOST:-:443}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
