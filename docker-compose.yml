@@ -8,7 +8,7 @@ services:
       POSTGRES_DB:       dogear
     volumes:
       - pgdata:/var/lib/postgresql/data
-    # Postgres is internal-only by default. Uncomment to expose for local dev tools:
+    # Postgres is internal-only. Uncomment to expose for local DB tools (TablePlus, etc.):
     # ports:
     #   - "${DOGEAR_DB_PORT:-54320}:5432"
     healthcheck:
@@ -25,28 +25,8 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://dogear:dogear@db:5432/dogear
-    # App port is internal — only Caddy talks to it directly.
-    expose:
-      - "3000"
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    depends_on:
-      - app
     ports:
-      - "${DOGEAR_HTTP_PORT:-80}:80"
-      - "${DOGEAR_HTTPS_PORT:-443}:443"
-    environment:
-      # Set DOGEAR_HOST to your Tailscale hostname or domain for trusted HTTPS.
-      # Examples:
-      #   Tailscale:  DOGEAR_HOST=my-server.tail1234.ts.net
-      #   Domain:     DOGEAR_HOST=library.yourdomain.com
-      DOGEAR_HOST: ${DOGEAR_HOST:-:443}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - "${DOGEAR_PORT:-630}:3000"
 
   pgadmin:
     image: dpage/pgadmin4
@@ -61,5 +41,3 @@ services:
 
 volumes:
   pgdata:
-  caddy_data:
-  caddy_config:

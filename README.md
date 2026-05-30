@@ -34,67 +34,17 @@ git clone https://github.com/dashtink/dogear.git
 cd dogear
 ```
 
-### 2. Configure HTTPS
-
-Camera access on mobile **requires HTTPS** — enforced by all browsers regardless of network. Set `DOGEAR_HOST` to tell Caddy how to issue your certificate. Create a `.env` file in the project root:
-
-```bash
-# Tailscale (recommended — zero cert setup if already on Tailscale)
-DOGEAR_HOST=my-server.tail1234.ts.net
-
-# Real domain (Let's Encrypt auto-cert — ports 80+443 must be open)
-# DOGEAR_HOST=library.yourdomain.com
-
-# Local IP / no domain — leave unset, see Option C below
-```
-
----
-
-#### Option A — Tailscale ⭐ recommended
-
-If Tailscale is already running on your server and devices, this takes 2 minutes.
-
-1. Enable HTTPS certificates in [Tailscale admin → DNS](https://login.tailscale.com/admin/dns) (one toggle)
-2. Find your server's Tailscale hostname: `tailscale status | head -3`
-3. Create `.env`:
-
-```bash
-echo "DOGEAR_HOST=my-server.tail1234.ts.net" > .env
-```
-
-Caddy fetches a trusted cert from Tailscale's ACME server automatically. Since your devices already trust Tailscale's CA, the cert is valid immediately — no installs, no warnings, camera works.
-
----
-
-#### Option B — Real domain (Let's Encrypt)
-
-```bash
-echo "DOGEAR_HOST=library.yourdomain.com" > .env
-```
-
-Ensure ports 80 and 443 are open on your router/firewall. Caddy handles the rest.
-
----
-
-#### Option C — Self-signed cert (local IP, no domain)
-
-Leave `DOGEAR_HOST` unset. Caddy generates an internal CA. You install it once per device:
-
-```bash
-# After starting the stack:
-docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
-```
-
-**iPhone/iPad:** AirDrop `caddy-root.crt` to yourself → open it → Settings → General → VPN & Device Management → Install → Settings → General → About → Certificate Trust Settings → enable the Caddy CA
-
-**Android:** Transfer the file → Settings → Security → Encryption & credentials → Install a certificate → CA certificate
-
----
-
-### 3. Start
+### 2. Start
 
 ```bash
 docker compose up -d --build
+```
+
+DogEar runs on **port 630** by default (`http://server-ip:630`). Change it by setting `DOGEAR_PORT` in a `.env` file:
+
+```bash
+# .env
+DOGEAR_PORT=630   # change to any free port
 ```
 
 On first start, database migrations run automatically. Check everything is up:
@@ -102,6 +52,21 @@ On first start, database migrations run automatically. Check everything is up:
 ```bash
 docker compose ps   # all services should show "healthy" or "running"
 ```
+
+---
+
+### HTTPS (required for camera scanning on mobile)
+
+Browsers block camera access on plain HTTP. If you want to use the barcode scanner on your phone, you need HTTPS. The easiest options:
+
+**Already have a reverse proxy?** (Nginx Proxy Manager, Traefik, Caddy, etc.)
+Point it at `http://server-ip:630` and terminate TLS there. No changes to DogEar needed.
+
+**Using Tailscale?**
+1. Enable HTTPS in [Tailscale admin → DNS](https://login.tailscale.com/admin/dns)
+2. Add a proxy entry pointing your Tailscale hostname to port 630
+
+> If you don't need the barcode camera scanner (Title Search and Manual ISBN both work over plain HTTP), you can skip HTTPS entirely.
 
 ---
 
