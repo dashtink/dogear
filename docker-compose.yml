@@ -18,6 +18,7 @@ services:
       retries: 5
 
   app:
+    image: ghcr.io/dashtink/dogear:latest
     build: .
     restart: unless-stopped
     depends_on:
