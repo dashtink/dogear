@@ -1,0 +1,15 @@
+{
+  # Use Caddy's internal CA for self-signed HTTPS on local network.
+  # To trust it on your phone: copy /data/caddy/pki/authorities/local/root.crt
+  # to your phone and install it as a trusted CA.
+  local_certs
+}
+
+:443 {
+  tls internal
+  reverse_proxy app:3000
+}
+
+:80 {
+  redir https://{host}{uri} permanent
+}
