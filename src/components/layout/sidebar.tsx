@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ScanLine, BookMarked, Users, Library, ContactRound } from "lucide-react";
+import { LayoutDashboard, ScanLine, BookMarked, Users, Library, ContactRound, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DogEarLogo } from "@/components/ui/dogear-logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -14,6 +14,7 @@ const nav = [
   { href: "/shelves",   label: "Shelves",   icon: BookMarked },
   { href: "/checkouts", label: "Checkouts", icon: Users },
   { href: "/contacts",  label: "Contacts",  icon: ContactRound },
+  { href: "/series",    label: "Series",    icon: Layers },
 ];
 
 export function Sidebar() {

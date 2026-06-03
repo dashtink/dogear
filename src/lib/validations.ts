@@ -20,9 +20,11 @@ export const CreateBookSchema = z.object({
 });
 
 export const UpdateBookSchema = CreateBookSchema.partial().extend({
-  readStatus: ReadStatusSchema.optional(),
-  startedAt:  z.string().nullable().optional(),
-  finishedAt: z.string().nullable().optional(),
+  readStatus:     ReadStatusSchema.optional(),
+  startedAt:      z.string().nullable().optional(),
+  finishedAt:     z.string().nullable().optional(),
+  seriesId:       z.number().int().positive().nullable().optional(),
+  seriesPosition: z.number().int().positive().nullable().optional(),
 });
 
 export const CreateCheckoutSchema = z.object({
@@ -34,6 +36,12 @@ export const CreateCheckoutSchema = z.object({
 
 export const CreateShelfSchema = z.object({
   name:        z.string().min(1),
+  description: z.string().optional(),
+});
+
+export const CreateSeriesSchema = z.object({
+  name:        z.string().min(1),
+  totalBooks:  z.number().int().positive().optional(),
   description: z.string().optional(),
 });
 

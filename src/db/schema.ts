@@ -19,6 +19,8 @@ export const books = pgTable("books", {
   ratingsAverage:   text("ratings_average"),
   ratingsCount:     integer("ratings_count"),
   pageCount:        integer("page_count"),
+  seriesId:       integer("series_id").references(() => series.id, { onDelete: "set null" }),
+  seriesPosition: integer("series_position"),
   addedAt:     timestamp("added_at").defaultNow().notNull(),
   readStatus:  readStatusEnum("read_status").default("unread").notNull(),
   startedAt:   timestamp("started_at"),
@@ -50,6 +52,13 @@ export const checkouts = pgTable("checkouts", {
   returnedAt:      timestamp("returned_at"),
 });
 
+export const series = pgTable("series", {
+  id:          serial("id").primaryKey(),
+  name:        text("name").notNull(),
+  totalBooks:  integer("total_books"),
+  description: text("description"),
+});
+
 export const contacts = pgTable("contacts", {
   id:    serial("id").primaryKey(),
   name:  text("name").notNull(),
@@ -58,9 +67,14 @@ export const contacts = pgTable("contacts", {
   notes: text("notes"),
 });
 
+export const seriesRelations = relations(series, ({ many }) => ({
+  books: many(books),
+}));
+
 export const booksRelations = relations(books, ({ one, many }) => ({
   location:  one(bookLocations, { fields: [books.id], references: [bookLocations.bookId] }),
   checkouts: many(checkouts),
+  series:    one(series, { fields: [books.seriesId], references: [series.id] }),
 }));
 
 export const shelvesRelations = relations(shelves, ({ many }) => ({

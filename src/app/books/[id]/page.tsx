@@ -131,6 +131,8 @@ export default async function BookDetailPage({ params }: { params: { id: string 
             location={book.location?.shelfId ? { shelfId: book.location.shelfId, row: book.location.row, position: book.location.position } : null}
             activeCheckout={activeCheckout ?? null}
             readStatus={(book.readStatus ?? "unread") as "unread" | "reading" | "read"}
+            seriesId={book.seriesId}
+            seriesPosition={book.seriesPosition}
           />
         </div>
       </div>
