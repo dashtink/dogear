@@ -8,14 +8,27 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShelfAssignDialog } from "@/components/shelves/shelf-assign-dialog";
 import { CheckoutForm } from "@/components/checkouts/checkout-form";
-import { MapPin, BookUser, RotateCcw, Trash2, BookOpen, BookCheck, Bookmark, Layers } from "lucide-react";
+import { MapPin, BookUser, RotateCcw, Trash2, BookOpen, BookCheck, Bookmark, Layers, Pencil } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type ReadStatus = "unread" | "reading" | "read";
 
+interface BookFields {
+  id: number;
+  title: string;
+  author?: string | null;
+  coverUrl?: string | null;
+  year?: number | null;
+  genre?: string | null;
+  publisher?: string | null;
+  description?: string | null;
+  pageCount?: number | null;
+}
+
 interface Props {
-  book: { id: number; title: string };
+  book: BookFields;
   location?: { shelfId: number; row?: string | null; position?: number | null } | null;
   activeCheckout: { id: number } | null;
   readStatus: ReadStatus;
@@ -34,10 +47,22 @@ export function BookDetailActions({ book, location, activeCheckout, readStatus: 
   const [shelfOpen,    setShelfOpen]    = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [seriesOpen,   setSeriesOpen]   = useState(false);
+  const [editOpen,     setEditOpen]     = useState(false);
   const [readStatus,   setReadStatus]   = useState<ReadStatus>(initialStatus);
   const [allSeries,    setAllSeries]    = useState<{ id: number; name: string }[]>([]);
   const [seriesId,     setSeriesId]     = useState<number | null>(initialSeriesId ?? null);
   const [seriesPos,    setSeriesPos]    = useState<string>(initialSeriesPos?.toString() ?? "");
+
+  // Edit form state
+  const [editTitle,       setEditTitle]       = useState(book.title);
+  const [editAuthor,      setEditAuthor]      = useState(book.author ?? "");
+  const [editCoverUrl,    setEditCoverUrl]    = useState(book.coverUrl ?? "");
+  const [editYear,        setEditYear]        = useState(book.year?.toString() ?? "");
+  const [editGenre,       setEditGenre]       = useState(book.genre ?? "");
+  const [editPublisher,   setEditPublisher]   = useState(book.publisher ?? "");
+  const [editDescription, setEditDescription] = useState(book.description ?? "");
+  const [editPageCount,   setEditPageCount]   = useState(book.pageCount?.toString() ?? "");
+  const [editSaving,      setEditSaving]      = useState(false);
 
   async function updateStatus(status: ReadStatus) {
     setReadStatus(status);
@@ -80,6 +105,34 @@ export function BookDetailActions({ book, location, activeCheckout, readStatus: 
     });
     setSeriesOpen(false);
     router.refresh();
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editTitle.trim()) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/books/${book.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title:       editTitle.trim(),
+          author:      editAuthor.trim()      || null,
+          coverUrl:    editCoverUrl.trim()    || null,
+          year:        editYear               ? parseInt(editYear)       : null,
+          genre:       editGenre.trim()       || null,
+          publisher:   editPublisher.trim()   || null,
+          description: editDescription.trim() || null,
+          pageCount:   editPageCount          ? parseInt(editPageCount)  : null,
+        }),
+      });
+      if (!res.ok) { toast.error("Failed to save changes"); return; }
+      toast.success("Book updated");
+      setEditOpen(false);
+      router.refresh();
+    } finally {
+      setEditSaving(false);
+    }
   }
 
   async function deleteBook() {
@@ -133,6 +186,10 @@ export function BookDetailActions({ book, location, activeCheckout, readStatus: 
           </Button>
         )}
 
+        <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+          <Pencil className="h-4 w-4 mr-2" /> Edit
+        </Button>
+
         <Button variant="ghost" size="sm" onClick={deleteBook} className="text-destructive hover:text-destructive ml-auto">
           <Trash2 className="h-4 w-4 mr-2" /> Delete
         </Button>
@@ -152,6 +209,59 @@ export function BookDetailActions({ book, location, activeCheckout, readStatus: 
         onClose={() => setCheckoutOpen(false)}
         onSaved={() => router.refresh()}
       />
+
+      {/* Edit book dialog */}
+      <Dialog open={editOpen} onOpenChange={v => !v && setEditOpen(false)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit Book</DialogTitle></DialogHeader>
+          <form onSubmit={saveEdit} className="space-y-3 py-2">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Title *</label>
+              <Input required value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Title" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Author</label>
+              <Input value={editAuthor} onChange={e => setEditAuthor(e.target.value)} placeholder="Author" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cover Image URL</label>
+              <Input value={editCoverUrl} onChange={e => setEditCoverUrl(e.target.value)} placeholder="https://…" />
+              {editCoverUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={editCoverUrl} alt="Cover preview" className="h-24 w-16 object-cover rounded-md mt-1 border" onError={e => (e.currentTarget.style.display = "none")} />
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Year</label>
+                <Input type="number" min={1000} max={2100} value={editYear} onChange={e => setEditYear(e.target.value)} placeholder="2024" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pages</label>
+                <Input type="number" min={1} value={editPageCount} onChange={e => setEditPageCount(e.target.value)} placeholder="320" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Genre</label>
+                <Input value={editGenre} onChange={e => setEditGenre(e.target.value)} placeholder="Fiction" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Publisher</label>
+                <Input value={editPublisher} onChange={e => setEditPublisher(e.target.value)} placeholder="Publisher" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Description</label>
+              <Textarea rows={4} value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Summary…" className="resize-none" />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={editSaving || !editTitle.trim()}>Save Changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Series dialog */}
       <Dialog open={seriesOpen} onOpenChange={v => !v && setSeriesOpen(false)}>
