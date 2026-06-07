@@ -18,7 +18,7 @@ services:
       retries: 5
 
   app:
-    image: ghcr.io/dashtink/dogear:latest
+    image: danikellogg/dogear:latest
     restart: unless-stopped
     depends_on:
       db:
