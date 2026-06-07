@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, ScanLine, BookMarked, Users, Library, ContactRound, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DogEarLogo } from "@/components/ui/dogear-logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import Image from "next/image";
 
 const nav = [
   { href: "/",          label: "Dashboard", icon: LayoutDashboard },
@@ -22,9 +22,8 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex flex-col w-56 min-h-screen border-r bg-background px-3 py-6 gap-1 shrink-0">
-      <div className="flex items-center gap-2 px-3 mb-6">
-        <DogEarLogo className="h-7 w-7" />
-        <span className="font-bold text-lg tracking-tight">DogEar</span>
+      <div className="flex items-center px-3 mb-6">
+        <Image src="/logo.svg" alt="DogEar" width={120} height={44} priority />
       </div>
       {nav.map(({ href, label, icon: Icon }) => (
         <Link
