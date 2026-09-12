@@ -13,7 +13,7 @@ Thanks for your interest in contributing! This is a small personal project welco
 ### Local Setup
 
 ```bash
-git clone https://github.com/ProductColab/dogear.git
+git clone https://github.com/dashtink/dogear.git
 cd dogear
 npm install
 
@@ -80,4 +80,4 @@ Use the [Feature Request](.github/ISSUE_TEMPLATE/feature_request.md) template.
 
 ## Questions
 
-Open a [Discussion](https://github.com/ProductColab/dogear/discussions) for anything that isn't a bug or feature request.
+Open a [Discussion](https://github.com/dashtink/dogear/discussions) for anything that isn't a bug or feature request.

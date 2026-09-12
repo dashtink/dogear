@@ -37,7 +37,7 @@ jobs:
           context: .
           push: true
           tags: |
-            productcolab/dogear:latest
-            ghcr.io/productcolab/dogear:latest
+            dashtink/dogear:latest
+            ghcr.io/dashtink/dogear:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

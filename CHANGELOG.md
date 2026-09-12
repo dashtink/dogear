@@ -2,6 +2,11 @@
 
 All notable changes to DogEar will be documented here.
 
+## [0.2.1] – 2026-09-12
+
+### Changed
+- Docker images now published to `dashtink/dogear` on Docker Hub and `ghcr.io/dashtink/dogear` on GHCR following migration from the ProductColab GitHub org back to dashtink
+
 ## [0.2.0] – 2026-06-03
 
 ### Added

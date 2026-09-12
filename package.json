@@ -1,7 +1,14 @@
 {
   "name": "dogear",
-  "version": "0.2.0",
-  "private": true,
+  "version": "0.2.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dashtink/dogear.git"
+  },
+  "homepage": "https://github.com/dashtink/dogear#readme",
+  "bugs": {
+    "url": "https://github.com/dashtink/dogear/issues"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

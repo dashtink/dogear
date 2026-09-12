@@ -2,7 +2,7 @@
 
 **Self-hosted personal library catalog.** Scan ISBN barcodes, track physical shelf locations, manage who's borrowed your books, and follow your reading progress.
 
-![Version](https://img.shields.io/badge/version-0.2.0-blue)
+![Version](https://img.shields.io/badge/version-0.2.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
@@ -35,7 +35,7 @@
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/ProductColab/dogear.git
+git clone https://github.com/dashtink/dogear.git
 cd dogear
 ```
 
@@ -83,7 +83,7 @@ Point it at `http://server-ip:6300` and terminate TLS there.
 
 ## Auto-updates with Watchtower
 
-If you have [Watchtower](https://containrrr.dev/watchtower/) running, DogEar updates automatically. Every push to `main` builds a new image at `ghcr.io/ProductColab/dogear:latest` — Watchtower detects it and restarts the container.
+If you have [Watchtower](https://containrrr.dev/watchtower/) running, DogEar updates automatically. Every push to `main` builds a new image at `ghcr.io/dashtink/dogear:latest` — Watchtower detects it and restarts the container.
 
 No action needed on your server for updates.
 
