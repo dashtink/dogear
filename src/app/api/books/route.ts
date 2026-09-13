@@ -12,11 +12,13 @@ export async function GET(req: NextRequest) {
   const genre   = searchParams.get("genre");
   const onLoan  = searchParams.get("on_loan");
   const status  = searchParams.get("status");
+  const isbn    = searchParams.get("isbn");
 
   const conditions = [];
   if (q) conditions.push(or(ilike(books.title, `%${q}%`), ilike(books.author!, `%${q}%`)));
   if (genre) conditions.push(eq(books.genre!, genre));
   if (status) conditions.push(eq(books.readStatus, status as "unread" | "reading" | "read"));
+  if (isbn) conditions.push(eq(books.isbn, isbn));
 
   const rows = await db.query.books.findMany({
     where: conditions.length ? and(...conditions) : undefined,
@@ -62,6 +64,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const [book] = await db.insert(books).values(parsed.data).returning();
-  return NextResponse.json(book, { status: 201 });
+  if (parsed.data.isbn) {
+    const existing = await db.query.books.findFirst({ where: eq(books.isbn, parsed.data.isbn) });
+    if (existing) {
+      return NextResponse.json(
+        { error: "A book with this ISBN is already in your library", existingBookId: existing.id },
+        { status: 409 }
+      );
+    }
+  }
+
+  try {
+    const [book] = await db.insert(books).values(parsed.data).returning();
+    return NextResponse.json(book, { status: 201 });
+  } catch (err) {
+    // Race: two concurrent requests for the same ISBN (e.g. rapid bulk scanning)
+    // can both pass the findFirst check above. The DB's unique constraint on
+    // books.isbn is the final backstop — translate it to a clean 409.
+    if (err && typeof err === "object" && "code" in err && err.code === "23505") {
+      const existing = await db.query.books.findFirst({ where: eq(books.isbn, parsed.data.isbn!) });
+      return NextResponse.json(
+        { error: "A book with this ISBN is already in your library", existingBookId: existing?.id },
+        { status: 409 }
+      );
+    }
+    throw err;
+  }
 }
