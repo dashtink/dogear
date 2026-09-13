@@ -2,6 +2,14 @@
 
 All notable changes to DogEar will be documented here.
 
+## [0.3.0] – 2026-09-12
+
+### Added
+- Color theme presets — Default, Forest, Ocean, Rose, Amber — each with light and dark variants
+- Custom accent color picker — choose any color, applied instantly without a page reload
+- Theme selector (palette icon) in the sidebar alongside the existing light/dark toggle
+- Theme preference persisted to localStorage; restored before first paint to avoid flash
+
 ## [0.2.1] – 2026-09-12
 
 ### Changed
