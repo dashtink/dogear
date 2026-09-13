@@ -20,13 +20,13 @@ export async function GET(req: NextRequest) {
   const genre   = searchParams.get("genre");
   const onLoan  = searchParams.get("on_loan");
   const status  = searchParams.get("status");
-  const isbn    = searchParams.get("isbn");
+  const isbnRaw = searchParams.get("isbn");
 
   const conditions = [];
   if (q) conditions.push(or(ilike(books.title, `%${q}%`), ilike(books.author!, `%${q}%`)));
   if (genre) conditions.push(eq(books.genre!, genre));
   if (status) conditions.push(eq(books.readStatus, status as "unread" | "reading" | "read"));
-  if (isbn) conditions.push(eq(books.isbn, isbn));
+  if (isbnRaw) conditions.push(eq(books.isbn, normalizeISBN(isbnRaw)));
 
   const rows = await db.query.books.findMany({
     where: conditions.length ? and(...conditions) : undefined,
