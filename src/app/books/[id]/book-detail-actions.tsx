@@ -81,11 +81,16 @@ export function BookDetailActions({ book, location, activeCheckout, readStatus: 
       patch.finishedAt = null;
     }
 
-    await fetch(`/api/books/${book.id}`, {
+    const res = await fetch(`/api/books/${book.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
+    if (!res.ok) {
+      setReadStatus(previousStatus);
+      toast.error("Failed to update reading status");
+      return;
+    }
     router.refresh();
   }
 

@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { books, bookLocations, shelves, checkouts } from "@/db/schema";
-import { CreateBookSchema } from "@/lib/validations";
+import { CreateBookSchema, ReadStatusSchema } from "@/lib/validations";
 import { fetchByISBN, normalizeISBN } from "@/lib/isbn-lookup";
 import { ilike, or, eq, isNull, isNotNull, and, inArray } from "drizzle-orm";
-
-const VALID_STATUSES = ["unread", "reading", "read"] as const;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -15,8 +13,9 @@ export async function GET(req: NextRequest) {
   const onLoan  = searchParams.get("on_loan");
   const status  = searchParams.get("status");
 
-  if (status && !VALID_STATUSES.includes(status as typeof VALID_STATUSES[number])) {
-    return NextResponse.json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}` }, { status: 400 });
+  const statusParsed = status ? ReadStatusSchema.safeParse(status) : null;
+  if (status && !statusParsed?.success) {
+    return NextResponse.json({ error: `Invalid status. Must be one of: ${ReadStatusSchema.options.join(", ")}` }, { status: 400 });
   }
 
   const conditions = [];
@@ -88,6 +87,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const [book] = await db.insert(books).values(parsed.data).returning();
-  return NextResponse.json(book, { status: 201 });
+  try {
+    const [book] = await db.insert(books).values(parsed.data).returning();
+    return NextResponse.json(book, { status: 201 });
+  } catch (err) {
+    // Race: two concurrent requests for the same ISBN can both pass the findFirst check above.
+    // The DB's unique constraint on books.isbn is the final backstop — translate it to a clean 409.
+    if (err && typeof err === "object" && "code" in err && err.code === "23505") {
+      const existing = await db.query.books.findFirst({ where: eq(books.isbn, parsed.data.isbn!) });
+      return NextResponse.json(
+        { error: "A book with this ISBN is already in your library", existingBookId: existing?.id },
+        { status: 409 }
+      );
+    }
+    throw err;
+  }
 }

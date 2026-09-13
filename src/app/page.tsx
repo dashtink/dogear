@@ -62,10 +62,12 @@ export default async function DashboardPage() {
     .sort((a, b) => b.value - a.value)
     .slice(0, 8);
 
-  // Books finished per year
+  // Books finished per year — prefer finishedAt, but fall back to addedAt for
+  // books marked "read" before finishedAt was consistently recorded, so older
+  // history doesn't silently vanish from the chart.
   const yearMap: Record<string, number> = {};
-  for (const b of allBooks.filter(b => b.readStatus === "read" && b.finishedAt)) {
-    const yr = new Date(b.finishedAt!).getFullYear().toString();
+  for (const b of allBooks.filter(b => b.readStatus === "read")) {
+    const yr = new Date(b.finishedAt ?? b.addedAt).getFullYear().toString();
     yearMap[yr] = (yearMap[yr] ?? 0) + 1;
   }
   const readByYear = Object.entries(yearMap)
