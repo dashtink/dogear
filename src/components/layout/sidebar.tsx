@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, ScanLine, BookMarked, Users, Library, ContactRound, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { ThemeSelector } from "@/components/ui/theme-selector";
 import Image from "next/image";
 
 const nav = [
@@ -40,8 +41,9 @@ export function Sidebar() {
           {label}
         </Link>
       ))}
-      <div className="mt-auto px-3 pt-4 border-t">
+      <div className="mt-auto px-3 pt-4 border-t flex items-center gap-1">
         <ThemeToggle />
+        <ThemeSelector />
       </div>
     </aside>
   );

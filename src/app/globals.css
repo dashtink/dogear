@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Default (slate/navy) ─────────────────────────────── */
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -46,6 +47,87 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
   }
+
+  /* ── Forest (green) ───────────────────────────────────── */
+  .theme-forest {
+    --primary: 142 76% 22%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 142 76% 22%;
+    --accent: 138 30% 94%;
+    --accent-foreground: 142 76% 22%;
+    --secondary: 138 30% 94%;
+    --secondary-foreground: 142 76% 22%;
+  }
+  .dark.theme-forest {
+    --primary: 142 60% 65%;
+    --primary-foreground: 142 76% 8%;
+    --ring: 142 60% 65%;
+    --accent: 142 30% 18%;
+    --accent-foreground: 142 60% 65%;
+    --secondary: 142 30% 18%;
+    --secondary-foreground: 142 60% 65%;
+  }
+
+  /* ── Ocean (teal/cyan) ────────────────────────────────── */
+  .theme-ocean {
+    --primary: 199 89% 30%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 199 89% 30%;
+    --accent: 197 40% 94%;
+    --accent-foreground: 199 89% 30%;
+    --secondary: 197 40% 94%;
+    --secondary-foreground: 199 89% 30%;
+  }
+  .dark.theme-ocean {
+    --primary: 199 75% 65%;
+    --primary-foreground: 199 89% 10%;
+    --ring: 199 75% 65%;
+    --accent: 199 40% 18%;
+    --accent-foreground: 199 75% 65%;
+    --secondary: 199 40% 18%;
+    --secondary-foreground: 199 75% 65%;
+  }
+
+  /* ── Rose (pink/red) ──────────────────────────────────── */
+  .theme-rose {
+    --primary: 346 77% 35%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 346 77% 35%;
+    --accent: 346 30% 95%;
+    --accent-foreground: 346 77% 35%;
+    --secondary: 346 30% 95%;
+    --secondary-foreground: 346 77% 35%;
+  }
+  .dark.theme-rose {
+    --primary: 346 70% 68%;
+    --primary-foreground: 346 77% 10%;
+    --ring: 346 70% 68%;
+    --accent: 346 30% 18%;
+    --accent-foreground: 346 70% 68%;
+    --secondary: 346 30% 18%;
+    --secondary-foreground: 346 70% 68%;
+  }
+
+  /* ── Amber (warm orange) ──────────────────────────────── */
+  .theme-amber {
+    --primary: 32 95% 35%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 32 95% 35%;
+    --accent: 35 80% 94%;
+    --accent-foreground: 32 95% 35%;
+    --secondary: 35 80% 94%;
+    --secondary-foreground: 32 95% 35%;
+  }
+  .dark.theme-amber {
+    --primary: 38 90% 62%;
+    --primary-foreground: 32 95% 10%;
+    --ring: 38 90% 62%;
+    --accent: 32 40% 18%;
+    --accent-foreground: 38 90% 62%;
+    --secondary: 32 40% 18%;
+    --secondary-foreground: 38 90% 62%;
+  }
+
   * {
     @apply border-border;
   }
