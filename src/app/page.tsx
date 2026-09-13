@@ -33,7 +33,7 @@ export default async function DashboardPage() {
       },
     }),
     db.select({ count: count() }).from(books).where(gte(books.addedAt, monthStart)),
-    db.query.books.findMany({ columns: { readStatus: true, pageCount: true, year: true, genre: true, title: true, addedAt: true } }),
+    db.query.books.findMany({ columns: { readStatus: true, pageCount: true, year: true, genre: true, title: true, addedAt: true, finishedAt: true } }),
   ]);
 
   const onLoan  = activeCheckouts.length;
@@ -62,10 +62,12 @@ export default async function DashboardPage() {
     .sort((a, b) => b.value - a.value)
     .slice(0, 8);
 
-  // Books added per year (read ones)
+  // Books finished per year — prefer finishedAt, but fall back to addedAt for
+  // books marked "read" before finishedAt was consistently recorded, so older
+  // history doesn't silently vanish from the chart.
   const yearMap: Record<string, number> = {};
   for (const b of allBooks.filter(b => b.readStatus === "read")) {
-    const yr = new Date(b.addedAt).getFullYear().toString();
+    const yr = new Date(b.finishedAt ?? b.addedAt).getFullYear().toString();
     yearMap[yr] = (yearMap[yr] ?? 0) + 1;
   }
   const readByYear = Object.entries(yearMap)

@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { books, bookLocations, shelves, checkouts } from "@/db/schema";
-import { CreateBookSchema } from "@/lib/validations";
+import { CreateBookSchema, ReadStatusSchema } from "@/lib/validations";
 import { fetchByISBN, normalizeISBN } from "@/lib/isbn-lookup";
-import { ilike, or, eq, isNull, isNotNull, and } from "drizzle-orm";
+import { ilike, or, eq, isNull, isNotNull, and, inArray, DrizzleQueryError } from "drizzle-orm";
+
+async function duplicateIsbnResponse(isbn: string) {
+  const existing = await db.query.books.findFirst({ where: eq(books.isbn, isbn) });
+  return NextResponse.json(
+    { error: "A book with this ISBN is already in your library", existingBookId: existing?.id },
+    { status: 409 }
+  );
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -13,10 +21,34 @@ export async function GET(req: NextRequest) {
   const onLoan  = searchParams.get("on_loan");
   const status  = searchParams.get("status");
 
+  const statusParsed = status ? ReadStatusSchema.safeParse(status) : null;
+  if (status && !statusParsed?.success) {
+    return NextResponse.json({ error: `Invalid status. Must be one of: ${ReadStatusSchema.options.join(", ")}` }, { status: 400 });
+  }
+
   const conditions = [];
   if (q) conditions.push(or(ilike(books.title, `%${q}%`), ilike(books.author!, `%${q}%`)));
   if (genre) conditions.push(eq(books.genre!, genre));
   if (status) conditions.push(eq(books.readStatus, status as "unread" | "reading" | "read"));
+
+  if (shelfId) {
+    const shelfIdNum = parseInt(shelfId);
+    if (isNaN(shelfIdNum)) return NextResponse.json({ error: "Invalid shelf id" }, { status: 400 });
+    conditions.push(
+      inArray(
+        books.id,
+        db.select({ id: bookLocations.bookId }).from(bookLocations).where(eq(bookLocations.shelfId, shelfIdNum))
+      )
+    );
+  }
+  if (onLoan === "true") {
+    conditions.push(
+      inArray(
+        books.id,
+        db.select({ id: checkouts.bookId }).from(checkouts).where(isNull(checkouts.returnedAt))
+      )
+    );
+  }
 
   const rows = await db.query.books.findMany({
     where: conditions.length ? and(...conditions) : undefined,
@@ -30,16 +62,7 @@ export async function GET(req: NextRequest) {
     orderBy: (b, { desc }) => [desc(b.addedAt)],
   });
 
-  let result = rows;
-
-  if (shelfId) {
-    result = result.filter(b => b.location?.shelfId === parseInt(shelfId));
-  }
-  if (onLoan === "true") {
-    result = result.filter(b => b.checkouts.length > 0);
-  }
-
-  return NextResponse.json(result);
+  return NextResponse.json(rows);
 }
 
 export async function POST(req: NextRequest) {
@@ -62,6 +85,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const [book] = await db.insert(books).values(parsed.data).returning();
-  return NextResponse.json(book, { status: 201 });
+  if (parsed.data.isbn) {
+    const existing = await db.query.books.findFirst({ where: eq(books.isbn, parsed.data.isbn) });
+    if (existing) return duplicateIsbnResponse(parsed.data.isbn);
+  }
+
+  try {
+    const [book] = await db.insert(books).values(parsed.data).returning();
+    return NextResponse.json(book, { status: 201 });
+  } catch (err) {
+    // Race: two concurrent requests for the same ISBN can both pass the findFirst check above.
+    // The DB's unique constraint on books.isbn is the final backstop — translate it to a clean 409.
+    // drizzle-orm wraps the real pg error (which carries .code) inside DrizzleQueryError as
+    // `.cause` — the raw error itself never has `.code`.
+    if (err instanceof DrizzleQueryError && err.cause && typeof err.cause === "object" && "code" in err.cause && err.cause.code === "23505") {
+      return duplicateIsbnResponse(parsed.data.isbn!);
+    }
+    throw err;
+  }
 }
