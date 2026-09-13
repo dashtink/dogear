@@ -95,7 +95,8 @@ export function ContactsView({ initialContacts }: ContactsViewProps) {
 
   async function deleteContact(id: number) {
     if (!confirm("Delete this contact?")) return;
-    await fetch(`/api/contacts/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/contacts/${id}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("Failed to delete contact"); return; }
     setContacts(c => c.filter(x => x.id !== id));
     toast.success("Contact deleted");
   }

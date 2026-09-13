@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { books, bookLocations, shelves, checkouts } from "@/db/schema";
-import { CreateBookSchema } from "@/lib/validations";
+import { CreateBookSchema, ReadStatusSchema } from "@/lib/validations";
 import { fetchByISBN, normalizeISBN } from "@/lib/isbn-lookup";
-import { ilike, or, eq, isNull, isNotNull, and, DrizzleQueryError } from "drizzle-orm";
+import { ilike, or, eq, isNull, isNotNull, and, inArray, DrizzleQueryError } from "drizzle-orm";
 
 async function duplicateIsbnResponse(isbn: string) {
   const existing = await db.query.books.findFirst({ where: eq(books.isbn, isbn) });
@@ -22,11 +22,35 @@ export async function GET(req: NextRequest) {
   const status  = searchParams.get("status");
   const isbnRaw = searchParams.get("isbn");
 
+  const statusParsed = status ? ReadStatusSchema.safeParse(status) : null;
+  if (status && !statusParsed?.success) {
+    return NextResponse.json({ error: `Invalid status. Must be one of: ${ReadStatusSchema.options.join(", ")}` }, { status: 400 });
+  }
+
   const conditions = [];
   if (q) conditions.push(or(ilike(books.title, `%${q}%`), ilike(books.author!, `%${q}%`)));
   if (genre) conditions.push(eq(books.genre!, genre));
   if (status) conditions.push(eq(books.readStatus, status as "unread" | "reading" | "read"));
   if (isbnRaw) conditions.push(eq(books.isbn, normalizeISBN(isbnRaw)));
+
+  if (shelfId) {
+    const shelfIdNum = parseInt(shelfId);
+    if (isNaN(shelfIdNum)) return NextResponse.json({ error: "Invalid shelf id" }, { status: 400 });
+    conditions.push(
+      inArray(
+        books.id,
+        db.select({ id: bookLocations.bookId }).from(bookLocations).where(eq(bookLocations.shelfId, shelfIdNum))
+      )
+    );
+  }
+  if (onLoan === "true") {
+    conditions.push(
+      inArray(
+        books.id,
+        db.select({ id: checkouts.bookId }).from(checkouts).where(isNull(checkouts.returnedAt))
+      )
+    );
+  }
 
   const rows = await db.query.books.findMany({
     where: conditions.length ? and(...conditions) : undefined,
@@ -40,16 +64,7 @@ export async function GET(req: NextRequest) {
     orderBy: (b, { desc }) => [desc(b.addedAt)],
   });
 
-  let result = rows;
-
-  if (shelfId) {
-    result = result.filter(b => b.location?.shelfId === parseInt(shelfId));
-  }
-  if (onLoan === "true") {
-    result = result.filter(b => b.checkouts.length > 0);
-  }
-
-  return NextResponse.json(result);
+  return NextResponse.json(rows);
 }
 
 export async function POST(req: NextRequest) {

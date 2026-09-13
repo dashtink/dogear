@@ -43,7 +43,7 @@ export function LibraryView() {
     if (onLoan) p.set("on_loan", "true");
     if (status) p.set("status", status);
     const res = await fetch(`/api/books?${p.toString()}`);
-    setBooks(await res.json());
+    setBooks(res.ok ? await res.json() : []);
     setLoading(false);
   }, [q, shelf, onLoan, status]);
 

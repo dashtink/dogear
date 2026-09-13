@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const history = req.nextUrl.searchParams.get("history") === "true";
 
   const rows = await db.query.checkouts.findMany({
-    where: history ? undefined : isNull(checkouts.returnedAt),
+    where: history ? isNotNull(checkouts.returnedAt) : isNull(checkouts.returnedAt),
     with: { book: true },
     orderBy: (c, { desc }) => [desc(c.checkedOutAt)],
   });
