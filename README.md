@@ -91,7 +91,7 @@ Point it at `http://server-ip:6300` and terminate TLS there.
 
 ## Auto-updates with Watchtower
 
-If you have [Watchtower](https://containrrr.dev/watchtower/) running, DogEar updates automatically. Every push to `main` builds a new image at `ghcr.io/dashtink/dogear:latest` — Watchtower detects it and restarts the container.
+If you have [Watchtower](https://containrrr.dev/watchtower/) running, DogEar updates automatically. Every push to `main` rebuilds and pushes a new `:latest` image to both `dashtink/dogear` (Docker Hub) and `ghcr.io/dashtink/dogear` (GHCR) — Watchtower detects whichever one your `docker-compose.yml` is running and restarts the container.
 
 No action needed on your server for updates.
 
