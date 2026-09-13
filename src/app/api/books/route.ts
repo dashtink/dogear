@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
   const genre   = searchParams.get("genre");
   const onLoan  = searchParams.get("on_loan");
   const status  = searchParams.get("status");
+  const isbnRaw = searchParams.get("isbn");
 
   const statusParsed = status ? ReadStatusSchema.safeParse(status) : null;
   if (status && !statusParsed?.success) {
@@ -30,6 +31,7 @@ export async function GET(req: NextRequest) {
   if (q) conditions.push(or(ilike(books.title, `%${q}%`), ilike(books.author!, `%${q}%`)));
   if (genre) conditions.push(eq(books.genre!, genre));
   if (status) conditions.push(eq(books.readStatus, status as "unread" | "reading" | "read"));
+  if (isbnRaw) conditions.push(eq(books.isbn, normalizeISBN(isbnRaw)));
 
   if (shelfId) {
     const shelfIdNum = parseInt(shelfId);
@@ -94,10 +96,11 @@ export async function POST(req: NextRequest) {
     const [book] = await db.insert(books).values(parsed.data).returning();
     return NextResponse.json(book, { status: 201 });
   } catch (err) {
-    // Race: two concurrent requests for the same ISBN can both pass the findFirst check above.
-    // The DB's unique constraint on books.isbn is the final backstop — translate it to a clean 409.
-    // drizzle-orm wraps the real pg error (which carries .code) inside DrizzleQueryError as
-    // `.cause` — the raw error itself never has `.code`.
+    // Race: two concurrent requests for the same ISBN (e.g. rapid bulk scanning)
+    // can both pass the findFirst check above. The DB's unique constraint on
+    // books.isbn is the final backstop — translate it to a clean 409.
+    // drizzle-orm wraps the real pg error (which carries .code) inside
+    // DrizzleQueryError as `.cause` — the raw error itself never has `.code`.
     if (err instanceof DrizzleQueryError && err.cause && typeof err.cause === "object" && "code" in err.cause && err.cause.code === "23505") {
       return duplicateIsbnResponse(parsed.data.isbn!);
     }
