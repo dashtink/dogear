@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, X, CheckCircle2, AlertCircle, Loader2, Copy } from "lucide-react";
+import { BookOpen, X, CheckCircle2, AlertCircle, AlertTriangle, Loader2, Copy, MousePointerClick } from "lucide-react";
 import Image from "next/image";
 import { normalizeISBN } from "@/lib/isbn-lookup";
 import type { BookMetadata } from "@/lib/isbn-lookup";
@@ -22,6 +22,7 @@ interface QueueItem {
   author: string;
   existingBookId?: number;
   errorMessage?: string;
+  shelfAssignFailed?: boolean;
 }
 
 interface Shelf { id: number; name: string; }
@@ -33,9 +34,14 @@ export function BulkScanPanel() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
   const [queue, setQueue] = useState<QueueItem[]>([]);
+  // Mirrors `queue`'s ISBNs synchronously (state updates are batched/async, so a
+  // hardware scanner double-firing the same barcode within one render cycle could
+  // otherwise slip past a check that reads `queue` from a stale closure).
+  const queuedIsbns = useRef<Set<string>>(new Set());
   const [shelves, setShelves] = useState<Shelf[]>([]);
   const [shelfId, setShelfId] = useState<string>("");
   const [addingAll, setAddingAll] = useState(false);
+  const [scanFocused, setScanFocused] = useState(true);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -51,6 +57,7 @@ export function BulkScanPanel() {
     const stripped = value.replace(/[-\s]/g, "");
     if (!/^\d{10}(\d{3})?$/.test(stripped)) {
       toast.error("Enter a valid 10 or 13 digit ISBN");
+      setValue(""); // clear invalid input too — otherwise a misread barcode poisons the next scan
       refocus();
       return;
     }
@@ -58,10 +65,11 @@ export function BulkScanPanel() {
     setValue("");
     refocus();
 
-    if (queue.some(item => item.isbn === isbn)) {
+    if (queuedIsbns.current.has(isbn)) {
       toast.info(`${isbn} is already in this scan queue`);
       return;
     }
+    queuedIsbns.current.add(isbn);
 
     const key = nextKey();
     setQueue(q => [{ key, isbn, status: "looking-up", meta: null, title: "", author: "" }, ...q]);
@@ -96,7 +104,8 @@ export function BulkScanPanel() {
     }
   }
 
-  function removeItem(key: string) {
+  function removeItem(key: string, isbn: string) {
+    queuedIsbns.current.delete(isbn);
     setQueue(q => q.filter(item => item.key !== key));
   }
 
@@ -109,6 +118,7 @@ export function BulkScanPanel() {
   async function addAll() {
     setAddingAll(true);
     const targets = queue.filter(i => (i.status === "found" || i.status === "notfound") && i.title.trim());
+    let addedCount = 0;
 
     for (const item of targets) {
       setQueue(q => q.map(i => i.key === item.key ? { ...i, status: "adding" } : i));
@@ -126,7 +136,10 @@ export function BulkScanPanel() {
         });
 
         if (res.status === 409) {
-          setQueue(q => q.map(i => i.key === item.key ? { ...i, status: "duplicate" } : i));
+          const body = await res.json().catch(() => null);
+          setQueue(q => q.map(i => i.key === item.key
+            ? { ...i, status: "duplicate", existingBookId: body?.existingBookId }
+            : i));
           continue;
         }
         if (!res.ok) {
@@ -135,21 +148,30 @@ export function BulkScanPanel() {
         }
 
         const book = await res.json();
+        let shelfAssignFailed = false;
         if (shelfId) {
-          await fetch(`/api/books/${book.id}/location`, {
+          const locRes = await fetch(`/api/books/${book.id}/location`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ shelfId: parseInt(shelfId) }),
-          }).catch(() => {});
+          }).catch(() => null);
+          shelfAssignFailed = !locRes || !locRes.ok;
         }
-        setQueue(q => q.map(i => i.key === item.key ? { ...i, status: "added" } : i));
+        addedCount++;
+        setQueue(q => q.map(i => i.key === item.key ? { ...i, status: "added", shelfAssignFailed } : i));
       } catch {
         setQueue(q => q.map(i => i.key === item.key ? { ...i, status: "error", errorMessage: "Failed to add" } : i));
       }
     }
 
     setAddingAll(false);
-    toast.success(`Added ${targets.length} book${targets.length !== 1 ? "s" : ""} to your library`);
+    if (addedCount === targets.length) {
+      toast.success(`Added ${addedCount} book${addedCount !== 1 ? "s" : ""} to your library`);
+    } else if (addedCount > 0) {
+      toast.warning(`Added ${addedCount} of ${targets.length} — check the ones marked below`);
+    } else {
+      toast.error("Couldn't add any books — check the errors below");
+    }
   }
 
   return (
@@ -159,6 +181,8 @@ export function BulkScanPanel() {
           ref={inputRef}
           value={value}
           onChange={e => setValue(e.target.value)}
+          onFocus={() => setScanFocused(true)}
+          onBlur={() => setScanFocused(false)}
           onKeyDown={e => {
             // Handle Enter explicitly rather than relying only on native form-submit-on-Enter —
             // the underlying @base-ui input primitive doesn't reliably trigger it, and this
@@ -182,9 +206,20 @@ export function BulkScanPanel() {
           </SelectContent>
         </Select>
       </form>
-      <p className="text-xs text-muted-foreground -mt-2">
-        Point your barcode scanner at a book, or type an ISBN and press Enter. Keep scanning — the field stays ready for the next one.
-      </p>
+
+      {scanFocused ? (
+        <p className="text-xs text-muted-foreground -mt-2">
+          Point your barcode scanner at a book, or type an ISBN and press Enter. Keep scanning — the field stays ready for the next one.
+        </p>
+      ) : (
+        <button
+          onClick={refocus}
+          className="flex items-center gap-1.5 text-xs text-amber-700 -mt-2 hover:underline"
+        >
+          <MousePointerClick className="h-3.5 w-3.5" />
+          Scanner paused — click here (or tap the field above) to resume scanning
+        </button>
+      )}
 
       {queue.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground border rounded-xl border-dashed">
@@ -214,12 +249,21 @@ export function BulkScanPanel() {
                       <Input
                         value={item.title}
                         onChange={e => updateItemField(item.key, "title", e.target.value)}
+                        onKeyDown={e => {
+                          // Treat Enter here as "done editing this title" and hand focus
+                          // back to the scanner, instead of letting it do nothing (or,
+                          // worse, letting a subsequent scan silently type into this box).
+                          if (e.key === "Enter") { e.preventDefault(); refocus(); }
+                        }}
                         placeholder="Enter title manually"
                         className="h-7 text-sm"
                       />
                       <Input
                         value={item.author}
                         onChange={e => updateItemField(item.key, "author", e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") { e.preventDefault(); refocus(); }
+                        }}
                         placeholder="Author (optional)"
                         className="h-7 text-sm"
                       />
@@ -242,13 +286,20 @@ export function BulkScanPanel() {
                       </Badge>
                     )}
                     {item.status === "adding" && <Badge variant="outline" className="text-xs gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Adding…</Badge>}
-                    {item.status === "added" && <Badge className="text-xs bg-green-100 text-green-700 border-green-300 gap-1"><CheckCircle2 className="h-3 w-3" /> Added</Badge>}
+                    {item.status === "added" && !item.shelfAssignFailed && (
+                      <Badge className="text-xs bg-green-100 text-green-700 border-green-300 gap-1"><CheckCircle2 className="h-3 w-3" /> Added</Badge>
+                    )}
+                    {item.status === "added" && item.shelfAssignFailed && (
+                      <Badge variant="outline" className="text-xs text-amber-700 border-amber-300 gap-1">
+                        <AlertTriangle className="h-3 w-3" /> Added, but shelf assignment failed
+                      </Badge>
+                    )}
                     {item.status === "error" && <Badge variant="outline" className="text-xs text-destructive border-destructive gap-1"><AlertCircle className="h-3 w-3" /> {item.errorMessage ?? "Error"}</Badge>}
                   </div>
                 </div>
 
                 {(item.status !== "adding" && item.status !== "added") && (
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeItem(item.key)}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeItem(item.key, item.isbn)}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 )}

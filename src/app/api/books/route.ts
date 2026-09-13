@@ -3,7 +3,15 @@ import { db } from "@/db";
 import { books, bookLocations, shelves, checkouts } from "@/db/schema";
 import { CreateBookSchema } from "@/lib/validations";
 import { fetchByISBN, normalizeISBN } from "@/lib/isbn-lookup";
-import { ilike, or, eq, isNull, isNotNull, and } from "drizzle-orm";
+import { ilike, or, eq, isNull, isNotNull, and, DrizzleQueryError } from "drizzle-orm";
+
+async function duplicateIsbnResponse(isbn: string) {
+  const existing = await db.query.books.findFirst({ where: eq(books.isbn, isbn) });
+  return NextResponse.json(
+    { error: "A book with this ISBN is already in your library", existingBookId: existing?.id },
+    { status: 409 }
+  );
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -66,12 +74,7 @@ export async function POST(req: NextRequest) {
 
   if (parsed.data.isbn) {
     const existing = await db.query.books.findFirst({ where: eq(books.isbn, parsed.data.isbn) });
-    if (existing) {
-      return NextResponse.json(
-        { error: "A book with this ISBN is already in your library", existingBookId: existing.id },
-        { status: 409 }
-      );
-    }
+    if (existing) return duplicateIsbnResponse(parsed.data.isbn);
   }
 
   try {
@@ -81,12 +84,10 @@ export async function POST(req: NextRequest) {
     // Race: two concurrent requests for the same ISBN (e.g. rapid bulk scanning)
     // can both pass the findFirst check above. The DB's unique constraint on
     // books.isbn is the final backstop — translate it to a clean 409.
-    if (err && typeof err === "object" && "code" in err && err.code === "23505") {
-      const existing = await db.query.books.findFirst({ where: eq(books.isbn, parsed.data.isbn!) });
-      return NextResponse.json(
-        { error: "A book with this ISBN is already in your library", existingBookId: existing?.id },
-        { status: 409 }
-      );
+    // drizzle-orm wraps the real pg error (which carries .code) inside
+    // DrizzleQueryError as `.cause` — the raw error itself never has `.code`.
+    if (err instanceof DrizzleQueryError && err.cause && typeof err.cause === "object" && "code" in err.cause && err.cause.code === "23505") {
+      return duplicateIsbnResponse(parsed.data.isbn!);
     }
     throw err;
   }

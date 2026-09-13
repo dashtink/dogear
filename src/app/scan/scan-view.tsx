@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Image from "next/image";
 import { normalizeISBN } from "@/lib/isbn-lookup";
+import type { BookMetadata } from "@/lib/isbn-lookup";
 
 interface SearchResult {
   title: string;
@@ -23,7 +24,7 @@ interface SearchResult {
 }
 
 type Mode = "scan" | "title";
-type TitleState = "idle" | "searching" | "results" | "picked";
+type TitleState = "idle" | "searching" | "loading-pick" | "results" | "picked";
 
 export function ScanView() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export function ScanView() {
   const [titleQuery,    setTitleQuery]    = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [picked,        setPicked]        = useState<SearchResult | null>(null);
+  const [pickedMeta,    setPickedMeta]    = useState<BookMetadata | null>(null);
   const [editTitle,     setEditTitle]     = useState("");
   const [editAuthor,    setEditAuthor]    = useState("");
   const [saving,        setSaving]        = useState(false);
@@ -53,10 +55,29 @@ export function ScanView() {
     }
   }
 
-  function pickResult(result: SearchResult) {
+  async function pickResult(result: SearchResult) {
     setPicked(result);
+    setPickedMeta(null);
     setEditTitle(result.title);
     setEditAuthor(result.author ?? "");
+
+    // If this result has an ISBN, fetch the full record (description, page count,
+    // subjects, ratings, etc.) instead of saving only the thin search-result fields.
+    if (result.isbn) {
+      setTitleState("loading-pick");
+      try {
+        const isbn = normalizeISBN(result.isbn);
+        const res = await fetch(`/api/isbn/${isbn}`);
+        if (res.ok) {
+          const meta: BookMetadata = await res.json();
+          setPickedMeta(meta);
+          setEditTitle(meta.title);
+          setEditAuthor(meta.author ?? "");
+        }
+      } catch {
+        // fall through to the thin search-result data already set above
+      }
+    }
     setTitleState("picked");
   }
 
@@ -65,20 +86,27 @@ export function ScanView() {
     setTitleQuery("");
     setSearchResults([]);
     setPicked(null);
+    setPickedMeta(null);
   }
 
   async function addPickedBook() {
     if (!picked) return;
     setSaving(true);
     try {
-      const payload: Record<string, unknown> = {
-        title:     editTitle || picked.title,
-        author:    editAuthor || picked.author,
-        isbn:      picked.isbn ? normalizeISBN(picked.isbn) : undefined,
-        coverUrl:  picked.coverUrl,
-        publisher: picked.publisher,
-        year:      picked.year,
-      };
+      const isbn = picked.isbn ? normalizeISBN(picked.isbn) : undefined;
+      // editTitle/editAuthor are the source of truth once the user can edit them —
+      // an intentionally-cleared field should stay cleared, not fall back to the
+      // original fetched value.
+      const payload: Record<string, unknown> = pickedMeta
+        ? { ...pickedMeta, isbn, title: editTitle.trim(), author: editAuthor.trim() || null }
+        : {
+            title:     editTitle.trim(),
+            author:    editAuthor.trim() || null,
+            isbn,
+            coverUrl:  picked.coverUrl,
+            publisher: picked.publisher,
+            year:      picked.year,
+          };
       const res = await fetch("/api/books", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,7 +115,7 @@ export function ScanView() {
       if (res.status === 409) { toast.error("This book is already in your library"); return; }
       if (!res.ok) { toast.error("Failed to add book"); return; }
       const book = await res.json();
-      toast.success(`"${editTitle || picked.title}" added to your library`);
+      toast.success(`"${editTitle.trim()}" added to your library`);
       router.push(`/books/${book.id}`);
     } catch {
       toast.error("Something went wrong");
@@ -107,11 +135,16 @@ export function ScanView() {
         </Button>
       </div>
 
-      {mode === "scan" && <BulkScanPanel />}
+      {/* Kept mounted (not conditionally rendered) so switching to Title Search and
+          back doesn't destroy an in-progress scan queue — the whole point of the
+          bulk-scan flow is that it survives incidental navigation within this page. */}
+      <div className={mode === "scan" ? "" : "hidden"}>
+        <BulkScanPanel />
+      </div>
 
       {mode === "title" && (
         <div className="space-y-4">
-          {titleState !== "picked" && (
+          {titleState !== "picked" && titleState !== "loading-pick" && (
             <form onSubmit={handleTitleSearch} className="flex gap-2">
               <Input
                 value={titleQuery}
@@ -137,6 +170,17 @@ export function ScanView() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {titleState === "loading-pick" && (
+            <div className="flex gap-4 p-3">
+              <Skeleton className="w-24 h-36 rounded-lg shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-1/3" />
+              </div>
             </div>
           )}
 
@@ -191,11 +235,15 @@ export function ScanView() {
                     <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="font-semibold" placeholder="Title" />
                     <Input value={editAuthor} onChange={e => setEditAuthor(e.target.value)} placeholder="Author" />
                     <div className="flex flex-wrap gap-1.5">
-                      {picked.year      && <Badge variant="outline" className="text-xs">{picked.year}</Badge>}
-                      {picked.publisher && <Badge variant="outline" className="text-xs truncate max-w-[140px]">{picked.publisher}</Badge>}
+                      {(pickedMeta?.year ?? picked.year)           && <Badge variant="outline" className="text-xs">{pickedMeta?.year ?? picked.year}</Badge>}
+                      {(pickedMeta?.publisher ?? picked.publisher) && <Badge variant="outline" className="text-xs truncate max-w-[140px]">{pickedMeta?.publisher ?? picked.publisher}</Badge>}
+                      {pickedMeta?.pageCount && <Badge variant="outline" className="text-xs">{pickedMeta.pageCount}p</Badge>}
                     </div>
                   </div>
                 </div>
+                {pickedMeta?.description && (
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{pickedMeta.description}</p>
+                )}
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={resetTitleSearch}>Search Another</Button>
                   <Button className="flex-1" onClick={addPickedBook} disabled={!editTitle.trim() || saving}>
