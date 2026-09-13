@@ -4,8 +4,10 @@ import { books, checkouts } from "@/db/schema";
 import { UpdateBookSchema } from "@/lib/validations";
 import { eq, isNull } from "drizzle-orm";
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const id = parseInt(params.id);
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id: rawId } = await params;
+  const id = parseInt(rawId);
+  if (isNaN(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const book = await db.query.books.findFirst({
     where: eq(books.id, id),
     with: {
@@ -17,8 +19,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   return NextResponse.json(book);
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const id = parseInt(params.id);
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id: rawId } = await params;
+  const id = parseInt(rawId);
+  if (isNaN(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const body = await req.json();
   const parsed = UpdateBookSchema.safeParse(body);
   if (!parsed.success) {
@@ -34,8 +38,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const id = parseInt(params.id);
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id: rawId } = await params;
+  const id = parseInt(rawId);
+  if (isNaN(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   await db.delete(books).where(eq(books.id, id));
   return new NextResponse(null, { status: 204 });
 }

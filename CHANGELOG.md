@@ -2,6 +2,18 @@
 
 All notable changes to DogEar will be documented here.
 
+## [0.3.1] – 2026-09-12
+
+### Security
+- Updated Next.js to 16.x and React to 19.x — fixes critical Image Optimizer DoS CVE (GHSA-9g9p) and 8 high-severity CVEs
+- Tightened `remotePatterns` in next.config.mjs: `*.googleusercontent.com` → `lh3.googleusercontent.com`
+- Added `.env.production` / `.env.development` / `.env.staging` to `.gitignore`
+- Added prominent no-auth / don't-expose-to-internet warning to README
+
+### Fixed
+- All dynamic route handlers (`[id]`, `[isbn]`) updated for Next.js 15/16 async `params` requirement
+- Added `isNaN` guard on all `parseInt(params.id)` calls — returns 400 instead of 500 on invalid IDs
+
 ## [0.3.0] – 2026-09-12
 
 ### Added

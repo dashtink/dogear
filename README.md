@@ -2,7 +2,7 @@
 
 **Self-hosted personal library catalog.** Scan ISBN barcodes, track physical shelf locations, manage who's borrowed your books, and follow your reading progress.
 
-![Version](https://img.shields.io/badge/version-0.2.1-blue)
+![Version](https://img.shields.io/badge/version-0.3.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
@@ -27,6 +27,14 @@
 
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose
 - A home server, NAS, or any machine that stays on (Raspberry Pi works great)
+
+---
+
+## Security Note
+
+> **DogEar has no built-in authentication.** It is designed for use on a trusted local network (home LAN, Tailscale, WireGuard). **Do not expose port 6300 directly to the public internet** — anyone who can reach it can read and modify your library.
+>
+> For remote access, use a VPN (Tailscale is easiest) or an authenticating reverse proxy (Authelia, Authentik, or Caddy with `basicauth`).
 
 ---
 

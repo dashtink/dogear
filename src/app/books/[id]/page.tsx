@@ -12,8 +12,9 @@ import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
 
-export default async function BookDetailPage({ params }: { params: { id: string } }) {
-  const id = parseInt(params.id);
+export default async function BookDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: rawId } = await params;
+  const id = parseInt(rawId);
   const book = await db.query.books.findFirst({
     where: eq(books.id, id),
     with: {

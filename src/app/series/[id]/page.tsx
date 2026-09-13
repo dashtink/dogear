@@ -10,8 +10,9 @@ import { SeriesDetailActions } from "./series-detail-actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function SeriesDetailPage({ params }: { params: { id: string } }) {
-  const id = parseInt(params.id);
+export default async function SeriesDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: rawId } = await params;
+  const id = parseInt(rawId);
   const s = await db.query.series.findFirst({
     where: eq(series.id, id),
     with: {
