@@ -36,6 +36,8 @@ interface Props {
   seriesPosition?: number | null;
 }
 
+type StatusPatch = { readStatus: ReadStatus; startedAt?: string | null; finishedAt?: string | null };
+
 const statusConfig: Record<ReadStatus, { label: string; icon: React.ElementType; active: string }> = {
   unread:  { label: "Unread",  icon: Bookmark,  active: "bg-secondary text-secondary-foreground" },
   reading: { label: "Reading", icon: BookOpen,  active: "bg-amber-100 text-amber-700 border-amber-300" },
@@ -65,16 +67,24 @@ export function BookDetailActions({ book, location, activeCheckout, readStatus: 
   const [editSaving,      setEditSaving]      = useState(false);
 
   async function updateStatus(status: ReadStatus) {
+    const previousStatus = readStatus;
     setReadStatus(status);
     const now = new Date().toISOString();
+
+    // Only stamp startedAt/finishedAt when actually transitioning into that state —
+    // re-clicking the already-active status must not overwrite a previously recorded date.
+    const patch: StatusPatch = { readStatus: status };
+    if (status === "reading" && previousStatus !== "reading") patch.startedAt = now;
+    if (status === "read" && previousStatus !== "read") patch.finishedAt = now;
+    if (status === "unread") {
+      patch.startedAt = null;
+      patch.finishedAt = null;
+    }
+
     await fetch(`/api/books/${book.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        readStatus: status,
-        startedAt:  status === "reading" || status === "read" ? now : null,
-        finishedAt: status === "read" ? now : null,
-      }),
+      body: JSON.stringify(patch),
     });
     router.refresh();
   }
